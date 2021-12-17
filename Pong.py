@@ -14,16 +14,15 @@ BRIGHT_GREEN = (100, 255, 100)
 class PongGame:
 
     def __init__(self):
+        pygame.init()
+        self.clock = pygame.time.Clock()
         self.screensize = (1800, 700)
         self.mode = pygame.display.set_mode(self.screensize)
         self.score = 0
         self.typed = ''
-
+        self.difficulty = self.menu_screen()
 
     def main(self):
-
-        pygame.init()
-        clock = pygame.time.Clock()
 
         pong = Pong(self.screensize)
         ai_paddle = AIPaddle(self.screensize)
@@ -35,7 +34,7 @@ class PongGame:
         while running:
 
             #fps limiting/reporting phase
-            clock.tick(64)
+            self.clock.tick(64)
 
             #event handling phase
             for event in pygame.event.get():
@@ -50,8 +49,10 @@ class PongGame:
 
                     if event.unicode in 'abcdefghijklmnopqrstuvwxyz':
                         self.typed += event.unicode
-                        if len(self.typed) > 700:
-                            self.typed = ''
+
+                        # Chop off first letter in string if past a certain length.
+                        if len(self.typed) > 30:
+                            self.typed = self.typed[1:]
 
                         if 'jonathanlovessamantha' in self.typed:
                             self.score += 100
@@ -67,7 +68,6 @@ class PongGame:
                             self.score = 0
                             self.typed = ''
 
-                    print(self.typed)
 
                 if event.type == KEYUP:
                     if event.key == K_UP and player_paddle.direction == -1:
@@ -75,11 +75,13 @@ class PongGame:
                     elif event.key == K_DOWN and player_paddle.direction == 1:
                         player_paddle.direction = 0
 
+
+
             #object updating phase
             ai_paddle.update(pong)
             player_paddle.update()
             evil_object.update(pong)
-            pong.update(player_paddle, ai_paddle, evil_object)
+            pong.update(player_paddle, ai_paddle, evil_object, self.difficulty)
 
 
             #CODE TASK: make some text on the screen over everything else saying you lost/won, and then exit on keypress
@@ -94,7 +96,7 @@ class PongGame:
                 ai_paddle = AIPaddle(self.screensize)
                 if self.score >= 2:
                     self.mode.fill((255, 255, 255))
-                    self.game_over(clock, self.screensize, self.mode, "You WIN!")
+                    self.game_over( self.screensize, self.mode, "You WIN!")
                     running = False
             elif pong.hit_edge_right:
                 self.score -= 1
@@ -102,7 +104,7 @@ class PongGame:
                 pong = Pong(self.screensize)
                 if self.score <= -2:
                     self.mode.fill((255, 255, 255))
-                    self.game_over(clock, self.screensize, self.mode, "You Lose.")
+                    self.game_over( self.screensize, self.mode, "You Lose.")
                     running = False
 
             #rendering phase
@@ -122,7 +124,7 @@ class PongGame:
         textSurface = font.render(text, True, BLACK)
         return textSurface, textSurface.get_rect()
 
-    def game_over(self, clock, screensize, screen, message):
+    def game_over(self, screensize, screen, message):
         display_width, display_height = screensize
         largeText = pygame.font.SysFont("comicsansms", 115)
         TextSurf, TextRect = self.text_objects(message, largeText)
@@ -145,13 +147,45 @@ class PongGame:
                         quit()
 
             pygame.display.update()
-            clock.tick(15)
+            self.clock.tick(15)
 
     def show_score(self):
         largeText = pygame.font.SysFont("comicsansms",18)
         TextSurf, TextRect = self.text_objects(f'score: {self.score}', largeText)
         TextRect.left = 0
         self.mode.blit(TextSurf, TextRect)
+
+
+    def menu_screen(self):
+
+        running = True
+        difficulty = ''
+
+        while running:
+            self.clock.tick(15)
+            # event handling phase
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    running = False
+
+                difficulty_dict = {K_1:'easy',K_2:'medium',K_3:'hard'}
+
+                if event.type == KEYDOWN:
+                    if event.key in difficulty_dict:
+                        difficulty = difficulty_dict[event.key]
+                        running = False
+
+            self.mode.fill((255, 255, 255))
+            # rendering phase
+            largeText = pygame.font.SysFont("comicsansms", 18)
+            TextSurf, TextRect = self.text_objects(f'1 easy, 2 medium, 3 hard.', largeText)
+            TextRect.left = 0
+            self.mode.blit(TextSurf, TextRect)
+
+            pygame.display.flip()
+
+        return difficulty
+
 
 pg = PongGame()
 

@@ -1,5 +1,4 @@
 import random
-
 import pygame
 
 
@@ -7,6 +6,7 @@ class Pong:
 
     def __init__(self, screensize):
 
+        self.speed_limit = [5,20]
         self.screensize = screensize
 
         self.centerx = int(screensize[0]*0.1)
@@ -20,17 +20,17 @@ class Pong:
 
         self.color = (100,100,255)
 
-        self.direction = [1,1]
+        self.direction = [random.random(),random.random()]
 
         self.speedx = 15
-        self.speedy = 2
+        self.speedy = 3
         #CODE TASK: change speed/radius as game progresses to make it harder
         #CODE BONUS: adjust ratio of x and y speeds to make it harder as game progresses
 
         self.hit_edge_left = False
         self.hit_edge_right = False
 
-    def update(self, player_paddle, ai_paddle, evil_object):
+    def update(self, player_paddle, ai_paddle, evil_object, difficulty):
 
         self.centerx += self.direction[0]*self.speedx
         self.centery += self.direction[1]*self.speedy
@@ -51,19 +51,37 @@ class Pong:
 
         if self.rect.colliderect(player_paddle.rect):
 
+            # Vary the speed of the ai paddle depending on chance.
+
+            if difficulty == 'easy':
+                if random.random() > 0.5:
+                    ai_paddle.speed = 2
+                else:
+                    ai_paddle.speed = 1
+            elif difficulty == 'medium':
+                if random.random() > 0.5:
+                    ai_paddle.speed = 4
+                else:
+                    ai_paddle.speed = 2
+            elif difficulty == 'hard':
+                if random.random() > 0.5:
+                    ai_paddle.speed = 7
+                else:
+                    ai_paddle.speed = 3
+
             # change the x angle
             self.direction[0] = random.randrange(-1, 0)
 
             if player_paddle.rect.center[1] < self.rect.center[1]:
                 self.direction[1] = random.randrange(1, 3)
             else:
-                self.direction[1] = random.randint(-3, -1)
+                self.direction[1] = random.randrange(-3, 1)
 
 
 
         if self.rect.colliderect(ai_paddle.rect):
             self.direction = [1,random.random()]
-            self.speedx += AIPaddle.paddleLength   # Increase the speed every time the AI hits.
+            self.speedx += 2   # Increase the speed every time the AI hits.
             self.radius = random.randint(3,24)  # Change the size of the pong if ai hits.
             ai_paddle.rect.height -= 10
 
@@ -81,8 +99,8 @@ class Pong:
                 # Shrink the object.
                 evil_object.rect = pygame.Rect(0, evil_object.centery - int(evil_object.height * 0.5), evil_object.width-10, evil_object.height-20)
 
-        if self.speedx > 10 or self.speedx <= 1:
-            self.speedx = random.randrange(2,10)
+        if self.speedx > self.speed_limit[1] or self.speedx <= self.speed_limit[0]:
+            self.speedx = random.randrange(self.speed_limit[0], self.speed_limit[1])
 
         # Make sure it never just vertically bounces.
         if self.direction[0] == 0:
@@ -96,19 +114,17 @@ class Pong:
 
 class AIPaddle:
 
-    paddleLength = 0.5
-
     def __init__(self, screensize):
 
         self.screensize = screensize
 
-        self.centerx = 5
+        self.centerx = 50
         self.centery = int(screensize[1]*0.5)
 
-        self.height = 100 * self.paddleLength
-        self.width = 100
+        self.height = 50
+        self.width = 10
 
-        self.rect = pygame.Rect(0, self.centery-int(self.height*0.5), self.width, self.height)
+        self.rect = pygame.Rect(self.centerx, self.centery-int(self.height*0.5), self.width, self.height)
 
         self.color = (255,100,100)
 
@@ -151,8 +167,8 @@ class EvilObject:
     def update(self, pong):
 
         # pong gets close to object, object stops to prevent overlap.
-        if abs(self.rect.center[0] - pong.rect.center[0]) <= self.width and\
-                abs(self.rect.center[1] - pong.rect.center[1]) <= self.height:
+        if abs(self.rect.center[0] - pong.rect.center[0]) <= (self.width/2) + pong.rect.width and\
+                abs(self.rect.center[1] - pong.rect.center[1]) <= (self.height/2) + pong.rect.width:
             self.speed = 0
         else:
             self.speed = 5
@@ -183,13 +199,13 @@ class PlayerPaddle:
     def __init__(self, screensize):
         self.screensize = screensize
 
-        self.centerx = screensize[0]-5
+        self.centerx = screensize[0]-50
         self.centery = int(screensize[1]*0.5)
 
         self.height = 100
-        self.width = 100
+        self.width = 10
 
-        self.rect = pygame.Rect(0, self.centery-int(self.height*0.5), self.width, self.height)
+        self.rect = pygame.Rect(self.centerx, self.centery-int(self.height*0.5), self.width, self.height)
 
         self.color = (100,255,100)
 
@@ -200,6 +216,7 @@ class PlayerPaddle:
 
     def update(self):
         self.centery += self.direction*self.speed
+
         if self.centery < 0:
             self.centery = 0 + (self.height/2)
         elif self.centery > self.screensize[1]:
